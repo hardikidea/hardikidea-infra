@@ -1,0 +1,40 @@
+name: 'Terraform'
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/develop' ]]; then
+            env='dev'
+          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+            env='staging'
+          else
+            env='prod'
+          fi
+          terraform plan -var-file="environments/$env/terraform.tfvars"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var-file="environments/$env/terraform.tfvars"
+        if: github.ref == 'refs/heads/main'
